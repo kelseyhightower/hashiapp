@@ -17,7 +17,11 @@ import (
 const version = "1.0.0"
 
 func main() {
-	secret := "secret" 
+	secret, err := getJWTSecret()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(secret)
 
 	log.Println("Starting Hashiapp...")
 	httpAddr := os.Getenv("NOMAD_ADDR_http")
@@ -44,6 +48,15 @@ func main() {
 	go func() {
 		errChan <- httpServer.ListenAndServe()
 	}()
+
+	// Manage Database Connection
+	dbm, err := NewDBManager("mysql", os.Getenv("HASHIAPP_DB_HOST"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := dbm.DB.Ping(); err != nil {
+		log.Fatal(err)
+	}
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
